@@ -7,7 +7,7 @@
 
         if (match) {
             return {
-                quote: match[1], 
+                quote: match[1],
                 author: match[2],
             };
         } else {
@@ -20,12 +20,13 @@
     let author = "";
     const cacheKey = "tegquote:quote";
     const cacheDateKey = "tegquote:quoteTime";
-    const targetHourUTC = 8;
+    const targetHourUTC = 7;
 
     function shouldUpdateQuote() {
         const now = new Date();
         const utcHour = now.getUTCHours();
         const todayDate = now.toISOString().split("T")[0];
+        console.log(utcHour, todayDate);
         const cachedDate = localStorage.getItem(cacheDateKey);
 
         const hasReachedTargetTime = utcHour >= targetHourUTC;
@@ -67,13 +68,22 @@
     }
 
     async function main() {
-        const cachedQuote = JSON.parse(localStorage.getItem(cacheKey));
+        let cachedQuote;
+        try {
+            cachedQuote = JSON.parse(localStorage.getItem(cacheKey));
+        } catch (error) {
+            console.error("Error parsing cached quote:", error);
+            cachedQuote = null;
+        }
 
         if (shouldUpdateQuote()) {
             await loadText();
-        } else {
+        } else if (cachedQuote && cachedQuote.quote && cachedQuote.author) {
             quote = cachedQuote.quote;
             author = cachedQuote.author;
+        } else {
+            console.warn("No valid cached quote found. Loading new quote...");
+            await loadText();
         }
     }
 </script>
@@ -84,7 +94,9 @@
             Loading...
         </h1>
     {:then}
-        <h1 class="text-center text-palette-2 text-3xl md:text-6xl mb-7">"{quote}"</h1>
+        <h1 class="text-center text-palette-2 text-3xl md:text-6xl mb-7">
+            "{quote}"
+        </h1>
         <h2 class="text-center text-palette-3 text-2xl md:text-4xl">
             - {author}
         </h2>
