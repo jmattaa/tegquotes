@@ -5,8 +5,7 @@ export default {
         colors: {
             "palette-1": "#6bc3a0",
             "palette-2": "#099e63",
-            "palette2-1": "#ded890",
-            "palette2-2": "#b7aa1d",
+            "palette-3": "#43b684",
         },
         extend: {},
     },

@@ -1,7 +1,23 @@
 <script>
-    import { onMount } from "svelte";
+    function parseCSV(csv) {
+        const rows = csv.split("\n");
+
+        const regex = /^"([^"]*)" *, *([^",\n]+)/;
+        const match = rows[0].match(regex);
+
+        if (match) {
+            return {
+                quote: match[1], 
+                author: match[2],
+            };
+        } else {
+            console.error("Failed to parse CSV");
+            return null;
+        }
+    }
 
     let quote = "";
+    let author = "";
     const cacheKey = "tegquote:quote";
     const cacheDateKey = "tegquote:quoteTime";
     const targetHourUTC = 8;
@@ -15,44 +31,63 @@
         const hasReachedTargetTime = utcHour >= targetHourUTC;
 
         return (
-            !localStorage.getItem(cacheKey) || 
-            !cachedDate || 
+            !localStorage.getItem(cacheKey) ||
+            !cachedDate ||
             (cachedDate !== todayDate && hasReachedTargetTime)
         );
     }
 
     async function loadText() {
         try {
-            const response = await fetch("./today.txt");
+            const sheetID =
+                "2PACX-1vReXV2ZHAVsvPMPl49jvC6gM3puYm9bNWSYRN6aSOpZOWu-QXIawE8tYFXlGBueygBqSC-7vBlMQiXG";
+
+            const response = await fetch(
+                `https://docs.google.com/spreadsheets/d/e/${sheetID}/pub?output=csv`,
+            );
             if (!response.ok) {
                 throw new Error("Failed to fetch quote");
             }
-            const newQuote = await response.text();
 
-            if (newQuote !== quote) {
-                quote = newQuote;
-                const todayDate = new Date().toISOString().split("T")[0];
-                localStorage.setItem(cacheKey, newQuote);
-                localStorage.setItem(cacheDateKey, todayDate);
-            }
+            const csv = await response.text();
+            const newQuote = parseCSV(csv);
+
+            localStorage.setItem(cacheKey, JSON.stringify(newQuote));
+            localStorage.setItem(
+                cacheDateKey,
+                new Date().toISOString().split("T")[0],
+            );
+
+            quote = newQuote.quote;
+            author = newQuote.author;
         } catch (error) {
             console.error("Error fetching quote:", error);
             quote = "Could not load quote. Try again later.";
         }
     }
 
-    onMount(() => {
-        const cachedText = localStorage.getItem(cacheKey);
+    async function main() {
+        const cachedQuote = JSON.parse(localStorage.getItem(cacheKey));
 
         if (shouldUpdateQuote()) {
-            loadText();
+            await loadText();
         } else {
-            quote = cachedText || "Welcome! Today's quote will load soon.";
+            quote = cachedQuote.quote;
+            author = cachedQuote.author;
         }
-    });
+    }
 </script>
 
-<main>
-    <h1 class="text-palette-2 text-3xl md:text-6xl">{quote}</h1>
+<main class="container">
+    {#await main()}
+        <h1 class="text-center text-palette-2 text-3xl md:text-6xl">
+            Loading...
+        </h1>
+    {:then}
+        <h1 class="text-center text-palette-2 text-3xl md:text-6xl mb-7">"{quote}"</h1>
+        <h2 class="text-center text-palette-3 text-2xl md:text-4xl">
+            - {author}
+        </h2>
+    {/await}
 </main>
 
