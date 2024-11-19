@@ -1,9 +1,6 @@
 <script>
     function parseCSV(csv) {
-        const rows = csv.split("\n");
-
-        const regex = /^"([^"]*)" *, *([^",\n]+)/;
-        const match = rows[0].match(regex);
+        const match = csv.match(/^"""([^"]*)""",\s*"""([^"]*)"""$/);
 
         if (match) {
             return {
@@ -12,6 +9,8 @@
             };
         } else {
             console.error("Failed to parse CSV");
+            console.log(csv);
+            console.log(match);
             return null;
         }
     }
@@ -20,21 +19,16 @@
     let author = "";
     const cacheKey = "tegquote:quote";
     const cacheDateKey = "tegquote:quoteTime";
-    const targetHourUTC = 7;
 
     function shouldUpdateQuote() {
         const now = new Date();
-        const utcHour = now.getUTCHours();
         const todayDate = now.toISOString().split("T")[0];
-        console.log(utcHour, todayDate);
         const cachedDate = localStorage.getItem(cacheDateKey);
-
-        const hasReachedTargetTime = utcHour >= targetHourUTC;
 
         return (
             !localStorage.getItem(cacheKey) ||
             !cachedDate ||
-            (cachedDate !== todayDate && hasReachedTargetTime)
+            cachedDate !== todayDate
         );
     }
 
@@ -102,4 +96,3 @@
         </h2>
     {/await}
 </main>
-
