@@ -3,28 +3,42 @@
 
     let quote = "";
     const cacheKey = "tegquote:quote";
-    const cacheTimeKey = "tegquote:quoteTime";
-    const targetHourUTC = 17;
+    const cacheDateKey = "tegquote:quoteTime";
+    const targetHourUTC = 8;
 
     function shouldUpdateQuote() {
         const now = new Date();
         const utcHour = now.getUTCHours();
-        const cachedTime = localStorage.getItem(cacheTimeKey);
-        const cachedQuote = localStorage.getItem(cacheKey);
+        const todayDate = now.toISOString().split("T")[0];
+        const cachedDate = localStorage.getItem(cacheDateKey);
+
+        const hasReachedTargetTime = utcHour >= targetHourUTC;
 
         return (
-            utcHour === targetHourUTC ||
-            !cachedTime ||
-            !cachedQuote
+            !localStorage.getItem(cacheKey) || 
+            !cachedDate || 
+            (cachedDate !== todayDate && hasReachedTargetTime)
         );
     }
 
     async function loadText() {
-        const response = await fetch("./today.txt");
-        quote = await response.text();
+        try {
+            const response = await fetch("./today.txt");
+            if (!response.ok) {
+                throw new Error("Failed to fetch quote");
+            }
+            const newQuote = await response.text();
 
-        localStorage.setItem(cacheKey, quote);
-        localStorage.setItem(cacheTimeKey, Date.now());
+            if (newQuote !== quote) {
+                quote = newQuote;
+                const todayDate = new Date().toISOString().split("T")[0];
+                localStorage.setItem(cacheKey, newQuote);
+                localStorage.setItem(cacheDateKey, todayDate);
+            }
+        } catch (error) {
+            console.error("Error fetching quote:", error);
+            quote = "Could not load quote. Try again later.";
+        }
     }
 
     onMount(() => {
@@ -33,11 +47,12 @@
         if (shouldUpdateQuote()) {
             loadText();
         } else {
-            quote = cachedText;
+            quote = cachedText || "Welcome! Today's quote will load soon.";
         }
     });
 </script>
 
 <main>
-    <h1 class="text-palette-2 text-6xl">{quote}</h1>
+    <h1 class="text-palette-2 text-3xl md:text-6xl">{quote}</h1>
 </main>
+
