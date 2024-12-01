@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+    let quoteType: "student" | "teacher" = "student";
+
     function parseCSV(csv) {
         const match = csv.match(/^"""([^"]*)""",\s*"""([^"]*)"""$/);
 
@@ -62,7 +64,7 @@
     }
 
     async function main() {
-        let cachedQuote;
+        let cachedQuote: any;
         try {
             cachedQuote = JSON.parse(localStorage.getItem(cacheKey));
         } catch (error) {
@@ -82,17 +84,32 @@
     }
 </script>
 
-<main class="container">
-    {#await main()}
-        <h1 class="text-center text-palette-2 text-3xl md:text-6xl">
-            Loading...
-        </h1>
-    {:then}
-        <h1 class="text-center text-palette-2 text-3xl md:text-6xl mb-7">
-            "{quote}"
-        </h1>
-        <h2 class="text-center text-palette-3 text-2xl md:text-4xl">
-            - {author}
-        </h2>
-    {/await}
+<main>
+    <div class="absolute top-4 left-4">
+        <button
+            on:click={() => (quoteType = "teacher")}
+            class={`p-2 rounded ${quoteType === "teacher" ? "bg-palette-2" : "bg-palette-3/50"}`}
+            >Lärar Quotes</button
+        >
+        <button
+            on:click={() => (quoteType = "student")}
+            class={`p-2 rounded ${quoteType === "student" ? "bg-palette-2" : "bg-palette-3/50"}`}
+            >Student Quotes</button
+        >
+    </div>
+
+    <div class="container">
+        {#await main()}
+            <h1 class="text-center text-palette-2 text-3xl md:text-6xl">
+                Loading...
+            </h1>
+        {:then}
+            <h1 class="text-center text-palette-2 text-3xl md:text-6xl mb-7">
+                "{quote}"
+            </h1>
+            <h2 class="text-center text-palette-3 text-2xl md:text-4xl">
+                - {author}
+            </h2>
+        {/await}
+    </div>
 </main>
