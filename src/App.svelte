@@ -1,13 +1,24 @@
 <script lang="ts">
+    interface QuoteFromCSV {
+        quoteStudent: string;
+        student: string;
+        quoteTeacher: string;
+        teacher: string;
+    }
+
     let quoteType: "student" | "teacher" = "student";
 
-    function parseCSV(csv) {
-        const match = csv.match(/^"""([^"]*)""",\s*"""([^"]*)"""$/);
+    function parseCSV(csv: string): QuoteFromCSV {
+        const match = csv.match(
+            /^"""([^"]*)""",\s*"""([^"]*)""",\s*"""([^"]*)""",\s*"""([^"]*)"""$/,
+        );
 
         if (match) {
             return {
-                quote: match[1],
-                author: match[2],
+                quoteStudent: match[1],
+                student: match[2],
+                quoteTeacher: match[3],
+                teacher: match[4],
             };
         } else {
             console.error("Failed to parse CSV");
@@ -21,6 +32,7 @@
     let author = "";
     const cacheKey = "tegquote:quote";
     const cacheDateKey = "tegquote:quoteTime";
+    let quoteTypeKey = "tegquote:quoteType";
 
     function shouldUpdateQuote() {
         const now = new Date();
@@ -49,22 +61,39 @@
             const csv = await response.text();
             const newQuote = parseCSV(csv);
 
-            localStorage.setItem(cacheKey, JSON.stringify(newQuote));
-            localStorage.setItem(
-                cacheDateKey,
-                new Date().toISOString().split("T")[0],
-            );
-
-            quote = newQuote.quote;
-            author = newQuote.author;
+            if (newQuote) {
+                localStorage.setItem(cacheKey, JSON.stringify(newQuote));
+                localStorage.setItem(
+                    cacheDateKey,
+                    new Date().toISOString().split("T")[0],
+                );
+                quote =
+                    newQuote[
+                        quoteType === "student"
+                            ? "quoteStudent"
+                            : "quoteTeacher"
+                    ];
+                author =
+                    newQuote[quoteType === "student" ? "student" : "teacher"];
+            }
         } catch (error) {
             console.error("Error fetching quote:", error);
             quote = "Could not load quote. Try again later.";
         }
     }
 
+    let storedQuoteType = localStorage.getItem(quoteTypeKey);
+    if (storedQuoteType) {
+        quoteType = storedQuoteType as "student" | "teacher";
+    }
+
+    function handleBtnClick(type: "student" | "teacher") {
+        quoteType = type;
+        localStorage.setItem(quoteTypeKey, quoteType);
+    }
+
     async function main() {
-        let cachedQuote: any;
+        let cachedQuote: QuoteFromCSV | null = null;
         try {
             cachedQuote = JSON.parse(localStorage.getItem(cacheKey));
         } catch (error) {
@@ -74,9 +103,13 @@
 
         if (shouldUpdateQuote()) {
             await loadText();
-        } else if (cachedQuote && cachedQuote.quote && cachedQuote.author) {
-            quote = cachedQuote.quote;
-            author = cachedQuote.author;
+        } else if (cachedQuote) {
+            quote =
+                cachedQuote[
+                    quoteType === "student" ? "quoteStudent" : "quoteTeacher"
+                ];
+            author =
+                cachedQuote[quoteType === "student" ? "student" : "teacher"];
         } else {
             console.warn("No valid cached quote found. Loading new quote...");
             await loadText();
@@ -87,14 +120,14 @@
 <main>
     <div class="absolute top-4 left-4">
         <button
-            on:click={() => (quoteType = "teacher")}
-            class={`p-2 rounded ${quoteType === "teacher" ? "bg-palette-2" : "bg-palette-3/50"}`}
-            >Lärar Quotes</button
+            on:click={() => handleBtnClick("student")}
+            class={`p-2 rounded ${quoteType === "student" ? "bg-palette-2" : "bg-palette-3/50"}`}
+            >Elev Quotes</button
         >
         <button
-            on:click={() => (quoteType = "student")}
-            class={`p-2 rounded ${quoteType === "student" ? "bg-palette-2" : "bg-palette-3/50"}`}
-            >Student Quotes</button
+            on:click={() => handleBtnClick("teacher")}
+            class={`p-2 rounded ${quoteType === "teacher" ? "bg-palette-2" : "bg-palette-3/50"}`}
+            >Lärar Quotes</button
         >
     </div>
 
